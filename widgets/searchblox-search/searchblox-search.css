@@ -1,0 +1,2534 @@
+/*
+ * Theming. The widget adapts to the page: it inherits the page's text color and
+ * font, keeps backgrounds transparent and derives greys from the text color, so it
+ * works on light and dark pages without configuration. searchblox-core.js sets
+ * data-sb-scheme="dark" when the page behind it is dark (or use the `scheme`
+ * option); that only lightens the accent for text and darkens the solid fills.
+ *
+ * To brand it, set one variable on .searchblox-search (or :root):
+ *   --sb-accent           brand color (default: SearchBlox purple #7639e2).
+ *                          Hover, tint and dark-page text shades derive from it.
+ * Optional:
+ *   --sb-accent-contrast  text on accent fills such as the button (default: #fff)
+ *   --sb-accent-text      accent for text and links, if the derived one is
+ *                          not readable on your background
+ *   --sb-radius           corner radius (default: 8px)
+ *   --sb-font             font family (default: inherited)
+ *   --sb-text             text color (default: inherited)
+ *   --sb-surface          fill of the input and suggestion list
+ *                          (default: #fff, or #1f1d24 on dark pages)
+ *
+ * The widget never sets these itself, so a site's values always win. The
+ * --_sb-* variables below are internal.
+ */
+.searchblox-search {
+  --_sb-accent: var(--sb-accent, #7639e2);
+  --_sb-accent-text: var(--sb-accent-text, var(--_sb-accent));
+  --_sb-accent-hover: color-mix(in srgb, var(--_sb-accent) 85%, #000);
+  --_sb-accent-subtle: color-mix(in srgb, var(--_sb-accent) 10%, transparent);
+  --_sb-accent-contrast: var(--sb-accent-contrast, #fff);
+  --_sb-surface: var(--sb-surface, #fff);
+  --_sb-muted: color-mix(in srgb, currentcolor 70%, transparent);
+  --_sb-divider: color-mix(in srgb, currentcolor 18%, transparent);
+  --_sb-control-border: color-mix(in srgb, currentcolor 45%, transparent);
+  --_sb-hover: color-mix(in srgb, currentcolor 8%, transparent);
+  --_sb-skeleton: color-mix(in srgb, currentcolor 10%, transparent);
+  --_sb-card-border: color-mix(in srgb, var(--_sb-accent) 20%, transparent);
+  --_sb-card-strip: var(--_sb-accent-subtle);
+  --_sb-card-shadow: rgb(0 0 0 / 7.5%) 0 10px 15px -3px, rgb(0 0 0 / 5%) 0 4px 6px -2px;
+  --_sb-mark: #fff3b0;
+  --_sb-error: #b42318;
+
+  display: block;
+  color: var(--sb-text); /* unset (inherits) unless --sb-text is defined */
+  font-family: var(--sb-font);
+  container-type: inline-size;
+}
+
+.searchblox-search[data-sb-scheme='dark'] {
+  --_sb-accent-text: var(--sb-accent-text, color-mix(in srgb, var(--_sb-accent) 45%, #fff));
+  --_sb-accent-subtle: color-mix(in srgb, var(--_sb-accent) 25%, transparent);
+  --_sb-surface: var(--sb-surface, #1f1d24);
+  --_sb-mark: rgb(250 204 21 / 28%);
+  --_sb-skeleton: color-mix(in srgb, currentcolor 22%, transparent);
+  --_sb-card-border: color-mix(in srgb, currentcolor 14%, transparent);
+  --_sb-card-strip: color-mix(in srgb, currentcolor 6%, transparent);
+  --_sb-card-shadow: none;
+  --_sb-error: #ff9c8f;
+
+  color-scheme: dark;
+}
+
+.searchblox-search .sb-form {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.searchblox-search .sb-input-wrap {
+  position: relative;
+  flex: 1;
+}
+
+.searchblox-search .sb-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-surface);
+  color: inherit;
+  font: inherit;
+}
+
+.searchblox-search .sb-input::placeholder {
+  color: var(--_sb-muted);
+  opacity: 1;
+}
+
+.searchblox-search .sb-input:focus-visible,
+.searchblox-search button:focus-visible,
+.searchblox-search a:focus-visible {
+  outline: 2px solid var(--_sb-accent-text);
+  outline-offset: 2px;
+}
+
+.searchblox-search .sb-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-submit:hover {
+  background: var(--_sb-accent-hover);
+}
+
+.searchblox-search .sb-suggestions {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+}
+
+.searchblox-search .sb-suggestions li {
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-suggestions li[role='option']:hover,
+.searchblox-search .sb-suggestions li[aria-selected='true'] {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-suggestions .sb-suggest-heading {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 10px 14px 4px;
+  color: var(--_sb-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  cursor: default;
+}
+
+.searchblox-search .sb-suggestions .sb-suggest-heading:not(:first-child) {
+  margin-top: 4px;
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.searchblox-search .sb-status {
+  color: var(--_sb-muted);
+  font-size: 0.9rem;
+}
+
+.searchblox-search .sb-facets-toggle {
+  display: none;
+  flex-shrink: 0;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: var(--_sb-accent-subtle);
+  color: var(--_sb-accent-text);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-facets-toggle[aria-expanded='true'] {
+  background: var(--_sb-hover);
+  color: var(--_sb-muted);
+}
+
+.searchblox-search .sb-body {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+/* Wide layouts: facets are a sidebar shown with the toggle. Narrow layouts keep
+   the collapsible "Filters" section and no toggle. */
+@container (width >= 720px) {
+  .searchblox-search .sb-facets-toggle:not([hidden]) {
+    display: grid;
+  }
+
+  .searchblox-search:not(.sb-facets-open) .sb-facets {
+    display: none;
+  }
+
+  .searchblox-search.sb-facets-open .sb-body:has(.sb-facets:not([hidden])) {
+    grid-template-columns: 240px minmax(0, 1fr);
+    column-gap: 48px;
+  }
+
+  .searchblox-search .sb-filters > summary {
+    display: none;
+  }
+}
+
+.searchblox-search .sb-body > * {
+  min-width: 0;
+}
+
+.searchblox-search .sb-filters > summary {
+  padding: 10px 14px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-filters[open] > summary {
+  margin-bottom: 16px;
+}
+
+.searchblox-search .sb-facet + .sb-facet {
+  margin-top: 32px;
+}
+
+.searchblox-search .sb-facet h4 {
+  margin: 0 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--_sb-divider);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: var(--_sb-muted);
+}
+
+.searchblox-search .sb-facet ul,
+.searchblox-search .sb-results,
+.searchblox-search .sb-featured {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-facet-option {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  margin: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-facet-option input {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--_sb-accent);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-facet-option input:focus-visible {
+  outline: 2px solid var(--_sb-accent-text);
+  outline-offset: 2px;
+}
+
+.searchblox-search .sb-facet-name {
+  flex: 1;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.searchblox-search .sb-facet-option:hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-facet-option.is-active {
+  background: var(--_sb-accent-subtle);
+  color: var(--_sb-accent-text);
+  font-weight: 600;
+}
+
+.searchblox-search .sb-facet-search {
+  box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  margin: 0 0 6px;
+  padding: 0 10px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: 6px;
+  background: var(--_sb-surface);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.searchblox-search .sb-facet-search::placeholder {
+  color: var(--_sb-muted);
+  opacity: 1;
+}
+
+.searchblox-search .sb-facet-search:focus-visible {
+  outline: 2px solid var(--_sb-accent-text);
+  outline-offset: 2px;
+}
+
+.searchblox-search .sb-facet-more:not(:empty) {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+  padding-left: 8px;
+  font-size: 0.85rem;
+}
+
+.searchblox-search .sb-facet-empty {
+  padding: 6px 8px;
+  color: var(--_sb-muted);
+  font-size: 0.85rem;
+}
+
+.searchblox-search .sb-count {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: var(--_sb-muted);
+  font-size: 0.85em;
+}
+
+.searchblox-search .sb-link-button {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--_sb-accent-text);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-results {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.searchblox-search .sb-result {
+  overflow: hidden;
+  border: 1px solid var(--_sb-card-border);
+  border-radius: calc(var(--sb-radius, 8px) * 2);
+  background: var(--_sb-surface);
+  box-shadow: var(--_sb-card-shadow);
+}
+
+.searchblox-search .sb-result-content {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+.searchblox-search .sb-result-fields {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.searchblox-search .sb-result-thumb {
+  flex-shrink: 0;
+  width: 96px;
+  height: 60px;
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+/* Wide layouts show the whole image, up to 200x100. */
+@container (width >= 720px) {
+  .searchblox-search .sb-result-thumb {
+    width: auto;
+    max-width: 200px;
+    height: 100px;
+    border-radius: 0;
+    object-fit: contain;
+  }
+}
+
+.searchblox-search .sb-result-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  padding: 10px 20px;
+  background: var(--_sb-card-strip);
+  color: var(--_sb-muted);
+  font-size: 0.8rem;
+}
+
+.searchblox-search .sb-result-detail {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.searchblox-search .sb-result-detail svg {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-featured-item {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 8px;
+  padding: 16px;
+  border: 1px solid var(--_sb-divider);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-accent-subtle);
+}
+
+.searchblox-search .sb-featured-item img {
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+}
+
+.searchblox-search .sb-featured-item p {
+  margin: 4px 0 0;
+}
+
+.searchblox-search .sb-ai {
+  margin-bottom: 28px;
+  padding: 18px 24px 20px;
+  border: 1px solid var(--_sb-divider);
+  border-radius: calc(var(--sb-radius, 8px) * 3);
+  line-height: 1.6;
+}
+
+.searchblox-search .sb-ai-header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.searchblox-search .sb-ai-regenerate {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  margin: -6px -8px -6px 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--_sb-accent-text);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-ai-regenerate:hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-ai-regenerate svg {
+  transition: rotate 0.4s ease;
+}
+
+.searchblox-search .sb-ai-regenerate:hover svg {
+  rotate: 180deg;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchblox-search .sb-ai-regenerate svg {
+    transition: none;
+  }
+}
+
+/* Boxed like the AI overview. */
+.searchblox-search .sb-faqs {
+  margin-bottom: 28px;
+  padding: 18px 24px 20px;
+  border: 1px solid var(--_sb-divider);
+  border-radius: calc(var(--sb-radius, 8px) * 3);
+}
+
+.searchblox-search .sb-faq-list > li:last-child .sb-faq {
+  border-bottom: 0;
+}
+
+.searchblox-search .sb-faqs-title {
+  margin: 0 0 4px;
+  color: var(--_sb-accent-text);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-faq-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-faq {
+  border-bottom: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-faq > summary {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 12px 4px;
+  font-weight: 600;
+  line-height: 1.4;
+  list-style: none;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-faq > summary::-webkit-details-marker {
+  display: none;
+}
+
+.searchblox-search .sb-faq > summary::after {
+  content: '+';
+  color: var(--_sb-accent-text);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.searchblox-search .sb-faq[open] > summary::after {
+  content: '\2212';
+}
+
+.searchblox-search .sb-faq > summary:focus-visible {
+  outline: 2px solid var(--_sb-accent-text);
+  outline-offset: 2px;
+}
+
+.searchblox-search .sb-faq-body {
+  padding: 0 4px 12px;
+  line-height: 1.55;
+}
+
+.searchblox-search .sb-faq-body p {
+  margin: 0 0 6px;
+}
+
+.searchblox-search .sb-faq-url {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--_sb-accent-text);
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+.searchblox-search .sb-faq-all {
+  margin-top: 10px;
+  font-size: 0.875rem;
+}
+
+.searchblox-search .sb-faq-all[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-ai-title,
+.searchblox-search .sb-faqs-title,
+.searchblox-search .sb-chat-header h2 {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.searchblox-search .sb-ai-title {
+  margin: 0;
+  color: var(--_sb-muted);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.searchblox-search .sb-ai-title svg {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-ai-text,
+.searchblox-search .sb-ai-points,
+.searchblox-search .sb-ai-sources {
+  font-size: 0.95rem;
+}
+
+.searchblox-search .sb-ai h3 {
+  margin: 16px 0 6px;
+  color: var(--_sb-accent-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-ai-time {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin: 18px 0 0;
+  color: var(--_sb-accent-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-ai-text p {
+  margin: 0 0 8px;
+}
+
+.searchblox-search .sb-ai-points,
+.searchblox-search .sb-ai-sources ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.searchblox-search .sb-ai-points li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-ai-points li:last-child {
+  border-bottom: 0;
+}
+
+.searchblox-search .sb-ai-sources li {
+  margin-bottom: 4px;
+}
+
+.searchblox-search .sb-ai-sources a {
+  color: var(--_sb-accent-text);
+  overflow-wrap: anywhere;
+}
+
+.searchblox-search .sb-ai-followups ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-ai-followups button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-ai-followups button:hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-ai-status {
+  margin: 0;
+  color: var(--_sb-muted);
+  font-size: 0.8rem;
+}
+
+.searchblox-search .sb-ai-loading span {
+  display: block;
+  height: 12px;
+  margin-top: 10px;
+  border-radius: 6px;
+  background: var(--_sb-skeleton);
+  animation: sb-pulse 1.5s ease-in-out infinite;
+}
+
+.searchblox-search .sb-ai-loading span:last-child {
+  width: 60%;
+}
+
+@keyframes sb-pulse {
+  50% { opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchblox-search .sb-ai-loading span {
+    animation: none;
+  }
+}
+
+.searchblox-search .sb-result-title {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.searchblox-search .sb-result-title a,
+.searchblox-search .sb-featured-item a {
+  color: var(--_sb-accent-text);
+  text-decoration: none;
+}
+
+.searchblox-search .sb-result-title a:hover,
+.searchblox-search .sb-featured-item a:hover {
+  text-decoration: underline;
+}
+
+.searchblox-search .sb-result-url {
+  overflow: hidden;
+  color: var(--_sb-muted);
+  font-size: 0.85rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.searchblox-search .sb-result-desc {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
+.searchblox-search mark {
+  padding: 0 1px;
+  background: var(--_sb-mark);
+  color: inherit;
+}
+
+.searchblox-search .sb-badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--_sb-hover);
+  color: var(--_sb-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin-top: 60px;
+}
+
+.searchblox-search .sb-page {
+  display: grid;
+  place-items: center;
+  min-width: 36px;
+  height: 36px;
+  margin: 0;
+  padding: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--_sb-accent-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-page-step {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-page:not(:disabled, .is-active):hover {
+  background: var(--_sb-accent-subtle);
+}
+
+.searchblox-search .sb-page.is-active {
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+}
+
+.searchblox-search .sb-page:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.searchblox-search[aria-busy='true'] .sb-main {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.searchblox-search .sb-error {
+  color: var(--_sb-error);
+}
+
+.searchblox-search.sb-box-only .sb-form {
+  margin: 0;
+}
+
+/* The widget is a size container (for its container queries), so it has no
+   width of its own: in a spot that sizes to its content, such as the EDS
+   header's tools, a search box would collapse. Give it a sensible minimum. */
+.searchblox-search.sb-box-only {
+  min-width: clamp(10rem, 45vw, 18rem);
+}
+
+/* Search Settings and Plugin Settings (`settings` option): icon buttons beside
+   the search button, each opening a panel below it. */
+.searchblox-search .sb-settings {
+  position: relative;
+}
+
+.searchblox-search .sb-settings-toggle {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-surface);
+  color: var(--_sb-accent-text);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-settings-toggle:hover,
+.searchblox-search .sb-settings-toggle[aria-expanded='true'] {
+  background: var(--_sb-accent-subtle);
+}
+
+.searchblox-search .sb-settings-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  right: 0;
+  box-sizing: border-box;
+  width: 300px;
+  max-width: calc(100vw - 32px);
+  padding: 16px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-surface);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 12%);
+  font-size: 0.875rem;
+}
+
+.searchblox-search .sb-settings-panel[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-settings-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-setting {
+  display: grid;
+  gap: 8px;
+  padding: 14px 0;
+}
+
+.searchblox-search .sb-setting + .sb-setting {
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-setting-label {
+  color: var(--_sb-muted);
+  font-weight: 600;
+}
+
+.searchblox-search .sb-setting-values {
+  display: flex;
+  justify-content: space-between;
+  color: var(--_sb-muted);
+  font-size: 0.8125rem;
+}
+
+.searchblox-search .sb-setting-values strong {
+  margin-left: 6px;
+  color: var(--sb-text, currentcolor);
+}
+
+.searchblox-search .sb-setting.sb-disabled {
+  opacity: 0.5;
+}
+
+.searchblox-search .sb-range {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--_sb-accent);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-range:disabled {
+  cursor: not-allowed;
+}
+
+.searchblox-search .sb-settings-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 6px;
+}
+
+.searchblox-search .sb-settings-apply {
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-settings-apply:hover {
+  background: var(--_sb-accent-hover);
+}
+
+.searchblox-search .sb-settings-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-setting-switch {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-settings-list li + li {
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-switch {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  margin: 0;
+  border-radius: 10px;
+  background: var(--_sb-control-border);
+  appearance: none;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.searchblox-search .sb-switch::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 30%);
+  transition: transform 0.15s;
+}
+
+.searchblox-search .sb-switch:checked {
+  background: var(--_sb-accent);
+}
+
+.searchblox-search .sb-switch:checked::before {
+  transform: translateX(16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchblox-search .sb-switch,
+  .searchblox-search .sb-switch::before {
+    transition: none;
+  }
+}
+
+.searchblox-search .sb-switch:focus-visible {
+  outline: 2px solid var(--_sb-accent-text);
+  outline-offset: 2px;
+}
+
+.searchblox-search .sb-settings-list .sb-disabled .sb-setting-switch {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.searchblox-search .sb-switch:disabled {
+  cursor: not-allowed;
+}
+
+.searchblox-search .sb-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* Chat: a separate .searchblox-search host on <body>. Containment would make it
+   the containing block for the fixed launcher and panel, so it's switched off. */
+.searchblox-search.sb-chat-host {
+  container-type: normal;
+}
+
+.searchblox-search.sb-chat-host[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-chat-launcher {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+  font: inherit;
+  font-weight: 600;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-chat-launcher:hover {
+  background: var(--_sb-accent-hover);
+}
+
+.searchblox-search .sb-chat {
+  position: fixed;
+  right: 20px;
+  bottom: 88px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: min(400px, calc(100vw - 40px));
+  height: min(600px, calc(100dvh - 118px));
+  overflow: hidden;
+  border: 1px solid var(--_sb-divider);
+  border-radius: calc(var(--sb-radius, 8px) * 2);
+  background: var(--_sb-surface);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+}
+
+.searchblox-search .sb-chat[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-chat-header {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 10px 12px 10px 16px;
+  border-bottom: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-chat-header h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1rem;
+}
+
+.searchblox-search .sb-chat-name {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-chat-header button,
+.searchblox-search .sb-votes button {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  padding: 6px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-chat-header button:hover,
+.searchblox-search .sb-votes button:not([aria-disabled]):hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-chat-log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  line-height: 1.5;
+}
+
+.searchblox-search .sb-chat-msg {
+  max-width: 85%;
+  overflow-wrap: anywhere;
+}
+
+.searchblox-search .sb-chat-msg.is-user {
+  align-self: flex-end;
+}
+
+.searchblox-search .sb-chat-msg.is-bot {
+  align-self: flex-start;
+}
+
+.searchblox-search .sb-chat-bubble {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .is-user .sb-chat-bubble {
+  border-bottom-right-radius: 0;
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+}
+
+.searchblox-search .is-bot .sb-chat-bubble {
+  border-bottom-left-radius: 0;
+}
+
+.searchblox-search .sb-chat-speaker {
+  margin: 0 0 6px;
+  color: var(--_sb-accent-text);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.searchblox-search .is-user .sb-chat-speaker {
+  color: inherit;
+}
+
+.searchblox-search .sb-chat-details {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  color: var(--_sb-muted);
+  font-size: 0.7rem;
+  line-height: 1;
+}
+
+.searchblox-search .is-user .sb-chat-details {
+  color: color-mix(in srgb, var(--_sb-accent-contrast) 85%, transparent);
+}
+
+.searchblox-search .sb-chat-time {
+  display: inline-block;
+}
+
+.searchblox-search .sb-chat-time::first-letter {
+  text-transform: uppercase;
+}
+
+.searchblox-search .sb-chat-duration {
+  display: inline-flex;
+  gap: 2px;
+  align-items: center;
+  margin-left: 6px;
+  padding-left: 6px;
+  border-left: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-chat-text p,
+.searchblox-search .sb-chat-action p {
+  margin: 0 0 8px;
+}
+
+.searchblox-search p.sb-chat-text {
+  margin: 0;
+}
+
+.searchblox-search .sb-chat-text > :last-child {
+  margin-bottom: 0;
+}
+
+.searchblox-search .sb-chat-text ul,
+.searchblox-search .sb-chat-text ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+}
+
+.searchblox-search .sb-chat-pending {
+  color: var(--_sb-muted);
+  font-size: 0.875rem;
+}
+
+.searchblox-search .sb-chat-sources {
+  margin: 6px 0 0;
+  padding-left: 24px;
+  font-size: 0.8rem;
+}
+
+.searchblox-search .sb-chat-sources a,
+.searchblox-search .sb-chat-action a {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-chat-action {
+  margin-top: 8px;
+  font-size: 0.875rem;
+}
+
+.searchblox-search .sb-votes {
+  display: flex;
+  gap: 2px;
+  color: var(--_sb-muted);
+}
+
+.searchblox-search .sb-chat-details .sb-votes {
+  margin: -6px -6px -6px 0;
+  color: inherit;
+}
+
+.searchblox-search .sb-votes button[aria-pressed='true'] {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-votes button[aria-disabled] {
+  cursor: default;
+}
+
+.searchblox-search .sb-votes button[aria-disabled]:not([aria-pressed='true']) {
+  opacity: 0.4;
+}
+
+.searchblox-search .sb-chat-form {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-chat-form .sb-submit {
+  padding: 0 12px;
+}
+
+.searchblox-search .sb-chat-form .sb-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+@media (max-width: 480px) {
+  .searchblox-search .sb-chat-launcher {
+    right: 16px;
+    bottom: 16px;
+  }
+
+  .searchblox-search .sb-chat {
+    right: 16px;
+    bottom: 84px;
+    left: 16px;
+    width: auto;
+    height: calc(100dvh - 108px);
+  }
+}
+
+/* LLM-generated fields (`llmFields`): topic chips, and in "both" mode a box
+   under the card with the generated title, description and topics. */
+.searchblox-search .sb-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-topic {
+  display: inline-block;
+  padding: 3px 7px;
+  border: 1px solid var(--_sb-card-border);
+  border-radius: 4px;
+  background: var(--_sb-accent-subtle);
+  color: var(--_sb-accent-text);
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.searchblox-search button.sb-topic {
+  cursor: pointer;
+}
+
+.searchblox-search button.sb-topic:hover {
+  border-color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-topics-more {
+  font-size: 0.75rem;
+}
+
+.searchblox-search .sb-llm {
+  margin: 0 20px 20px;
+  padding: 14px 16px;
+  border: 1px solid var(--_sb-card-border);
+  border-radius: calc(var(--sb-radius, 8px) * 1.5);
+  background: linear-gradient(135deg, var(--_sb-accent-subtle), transparent 70%);
+}
+
+.searchblox-search .sb-llm-label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0 0 8px;
+  color: var(--_sb-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.searchblox-search .sb-llm-label svg {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-llm-title {
+  margin: 0 0 4px;
+  color: var(--_sb-accent-text);
+  font-weight: 500;
+}
+
+.searchblox-search .sb-llm-desc {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* SearchAI Assist (`assist`): the pick button on each card, the tray of picked
+   results and the dialog. Tray and dialog live in their own host on <body>. */
+.searchblox-search .sb-result-heading .sb-result-title {
+  display: inline;
+}
+
+.searchblox-search .sb-assist-pick {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin: 0 0 0 8px;
+  padding: 2px 10px 2px 6px;
+  border: 1px solid var(--_sb-accent);
+  border-radius: 999px;
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.4;
+  vertical-align: middle;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-assist-pick:hover {
+  border-color: var(--_sb-accent-hover);
+  background: var(--_sb-accent-hover);
+}
+
+.searchblox-search .sb-assist-pick[aria-pressed='true'] {
+  --_sb-assist-picked: color-mix(in srgb, var(--_sb-accent) 70%, #000);
+
+  border-color: var(--_sb-assist-picked);
+  background: var(--_sb-assist-picked);
+}
+
+.searchblox-search .sb-assist-pick:disabled {
+  border-color: var(--_sb-control-border);
+  background: transparent;
+  color: var(--_sb-muted);
+  cursor: not-allowed;
+}
+
+.searchblox-search.sb-assist-host {
+  container-type: normal;
+}
+
+html.sb-assist-open {
+  overflow: hidden;
+}
+
+.searchblox-search .sb-assist-tray {
+  position: fixed;
+  left: 20px;
+  bottom: 20px;
+  z-index: 999;
+  box-sizing: border-box;
+  width: min(340px, calc(100vw - 40px));
+  padding: 14px 16px 16px;
+  border: 1px solid var(--_sb-divider);
+  border-radius: calc(var(--sb-radius, 8px) * 2);
+  background: var(--_sb-surface);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+  font-size: 0.875rem;
+}
+
+.searchblox-search .sb-assist-tray[hidden] {
+  display: none;
+}
+
+/* On phones, above the chat button. */
+@media (max-width: 480px) {
+  .searchblox-search .sb-assist-tray {
+    left: 16px;
+    bottom: 84px;
+    width: calc(100vw - 32px);
+  }
+}
+
+.searchblox-search .sb-assist-header {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.searchblox-search .sb-assist-header h2 {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-assist-header h2 svg {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-assist-selected {
+  color: var(--_sb-muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.searchblox-search .sb-assist-icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--_sb-muted);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-assist-icon:hover {
+  background: var(--_sb-hover);
+  color: inherit;
+}
+
+.searchblox-search .sb-assist-docs {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-assist-docs li {
+  display: flex;
+  min-width: 0;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 4px 4px 10px;
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-accent-subtle);
+}
+
+.searchblox-search .sb-assist-doc {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--_sb-accent-text);
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchblox-search .sb-assist-remove {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--_sb-muted);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-assist-remove:hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-assist-count {
+  margin: 0 0 12px;
+  color: var(--_sb-muted);
+  font-size: 0.8rem;
+}
+
+.searchblox-search .sb-assist-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.searchblox-search .sb-assist {
+  box-sizing: border-box;
+  flex-direction: column;
+  width: min(760px, calc(100vw - 32px));
+  height: min(720px, calc(100dvh - 32px));
+  max-height: none;
+  padding: 0;
+  border: 1px solid var(--_sb-divider);
+  border-radius: calc(var(--sb-radius, 8px) * 2);
+  background: var(--_sb-surface);
+  color: inherit;
+  box-shadow: 0 12px 40px rgb(0 0 0 / 25%);
+}
+
+.searchblox-search .sb-assist[open] {
+  display: flex;
+}
+
+.searchblox-search .sb-assist::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.searchblox-search .sb-assist > .sb-assist-header {
+  padding: 10px 12px 10px 18px;
+  border-bottom: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-assist-log {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  line-height: 1.5;
+}
+
+.searchblox-search .sb-assist-intro,
+.searchblox-search .sb-assist-wait {
+  margin: 0;
+  color: var(--_sb-muted);
+}
+
+.searchblox-search .sb-assist-wait {
+  animation: sb-pulse 1.5s ease-in-out infinite;
+}
+
+.searchblox-search .sb-assist-prompts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.searchblox-search .sb-assist-prompt {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--_sb-card-border);
+  border-radius: 999px;
+  background: var(--_sb-accent-subtle);
+  color: var(--_sb-accent-text);
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-assist-own {
+  text-transform: none;
+}
+
+.searchblox-search .sb-assist-prompt:hover:not(:disabled) {
+  border-color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-assist-prompt:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.searchblox-search .sb-assist .sb-chat-msg.is-bot {
+  max-width: 100%;
+}
+
+.searchblox-search .sb-assist .sb-chat-msg.is-user .sb-chat-bubble {
+  text-transform: capitalize;
+}
+
+.searchblox-search .sb-assist-doc-title {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.searchblox-search .sb-assist-doc-title a {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-assist-copy {
+  display: flex;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.searchblox-search .sb-assist-form {
+  padding: 12px 18px 14px;
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-assist-compose {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.searchblox-search .sb-assist-compose[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-assist-input {
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-surface);
+  color: inherit;
+  font: inherit;
+  resize: vertical;
+}
+
+.searchblox-search .sb-assist-input:focus-visible {
+  outline: 2px solid var(--_sb-accent-text);
+  outline-offset: 2px;
+}
+
+.searchblox-search .sb-assist-chosen {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 10px 0 0;
+}
+
+.searchblox-search .sb-assist-chosen li {
+  max-width: 100%;
+  font-size: 0.8rem;
+}
+
+.searchblox-search .sb-assist-chosen .sb-assist-doc {
+  max-width: 260px;
+}
+
+/* Tables and rules in LLM answers (Assist's compare answers a table). */
+.searchblox-search .sb-table {
+  margin: 0 0 8px;
+  overflow-x: auto;
+}
+
+.searchblox-search .sb-table table {
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.searchblox-search .sb-table th,
+.searchblox-search .sb-table td {
+  padding: 8px 10px;
+  border: 1px solid var(--_sb-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.searchblox-search .sb-table th {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-chat-text hr {
+  margin: 16px 0;
+  border: 0;
+  border-top: 1px solid var(--_sb-divider);
+}
+
+/* AI recommendations (`recommendations`): compact cards between the SmartFAQs
+   and the results. */
+.searchblox-search .sb-recs {
+  margin-bottom: 28px;
+}
+
+.searchblox-search .sb-recs .sb-ai-title {
+  margin-bottom: 12px;
+}
+
+.searchblox-search .sb-recs-updating {
+  margin-left: 6px;
+  font-weight: 400;
+  text-transform: none;
+  animation: sb-pulse 1.5s ease-in-out infinite;
+}
+
+.searchblox-search .sb-recs-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-rec {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--_sb-card-border);
+  border-radius: calc(var(--sb-radius, 8px) * 1.5);
+  background: var(--_sb-surface);
+  box-shadow: var(--_sb-card-shadow);
+}
+
+.searchblox-search .sb-rec .sb-result-title {
+  font-size: 0.95rem;
+}
+
+.searchblox-search .sb-rec .sb-result-desc {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.searchblox-search .sb-rec-new {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--_sb-accent-subtle);
+  color: var(--_sb-accent-text);
+  font-size: 0.7rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+
+.searchblox-search .sb-rec-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: auto;
+  color: var(--_sb-muted);
+  font-size: 0.75rem;
+}
+
+.searchblox-search .sb-setting-modes {
+  display: flex;
+  gap: 16px;
+  padding: 0 0 14px;
+  font-size: 0.8125rem;
+}
+
+.searchblox-search .sb-setting-modes[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-setting-modes label {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-setting-modes input {
+  margin: 0;
+  accent-color: var(--_sb-accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchblox-search .sb-assist-wait,
+  .searchblox-search .sb-recs-updating {
+    animation: none;
+  }
+}
+
+/* Sort menu (keyword search only), beside the results count. */
+.searchblox-search .sb-sort {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-left: auto;
+  color: var(--_sb-muted);
+  font-size: 0.85rem;
+}
+
+.searchblox-search .sb-sort[hidden],
+.searchblox-search .sb-selected[hidden],
+.searchblox-search .sb-empty[hidden],
+.searchblox-search .sb-aimode[hidden],
+.searchblox-search .sb-chat-prompts[hidden],
+.searchblox-search .sb-empty-popular[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-sort-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.searchblox-search .sb-sort-select {
+  height: 34px;
+  padding: 0 30px 0 12px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-surface);
+  color: inherit;
+  font: inherit;
+  appearance: none;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-sort-wrap svg {
+  position: absolute;
+  right: 10px;
+  pointer-events: none;
+}
+
+.searchblox-search .sb-sort-select:focus-visible,
+.searchblox-search .sb-voice:focus-visible {
+  outline: 2px solid var(--_sb-accent-text);
+  outline-offset: 2px;
+}
+
+.searchblox-search .sb-sort-dirs {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+}
+
+.searchblox-search .sb-sort-dir {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--_sb-muted);
+  cursor: pointer;
+}
+
+.searchblox-search .sb-sort-dir + .sb-sort-dir {
+  border-left: 1px solid var(--_sb-control-border);
+}
+
+.searchblox-search .sb-sort-dir:hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-sort-dir[aria-pressed='true'] {
+  background: var(--_sb-accent-subtle);
+  color: var(--_sb-accent-text);
+}
+
+/* Selected filters as removable chips, with "Clear all". */
+.searchblox-search .sb-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.searchblox-search .sb-chip {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  max-width: 100%;
+  margin: 0;
+  padding: 4px 10px 4px 12px;
+  border: 1px solid var(--_sb-card-border);
+  border-radius: 999px;
+  background: var(--_sb-accent-subtle);
+  color: var(--_sb-accent-text);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-chip span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.searchblox-search .sb-chip svg {
+  flex: none;
+}
+
+.searchblox-search .sb-chip:hover {
+  border-color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-chip-clear {
+  padding: 4px 12px;
+  border-color: var(--_sb-control-border);
+  background: transparent;
+  color: inherit;
+  font-weight: 600;
+}
+
+/* No results: tips and popular searches. */
+.searchblox-search .sb-empty {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 24px;
+  border: 1px solid var(--_sb-divider);
+  border-radius: calc(var(--sb-radius, 8px) * 2);
+}
+
+.searchblox-search .sb-empty > svg {
+  flex: none;
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-empty p {
+  margin: 0 0 6px;
+  color: var(--_sb-muted);
+}
+
+.searchblox-search .sb-empty .sb-empty-title {
+  color: inherit;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-empty-popular {
+  margin-top: 18px;
+}
+
+.searchblox-search .sb-empty-popular ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-empty-popular button,
+.searchblox-search .sb-chat-prompts button {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-empty-popular button:hover,
+.searchblox-search .sb-chat-prompts button:hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-empty-popular svg {
+  color: var(--_sb-accent-text);
+}
+
+/* Load more, in place of the page numbers. */
+.searchblox-search .sb-load-more {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  height: 40px;
+  margin: 0;
+  padding: 0 24px;
+  border: 1px solid var(--_sb-accent-text);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--_sb-accent-text);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-load-more:hover:not(:disabled) {
+  background: var(--_sb-accent-subtle);
+}
+
+.searchblox-search .sb-load-more:disabled {
+  cursor: default;
+}
+
+.searchblox-search .sb-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: sb-spin 0.8s linear infinite;
+}
+
+@keyframes sb-spin {
+  to { rotate: 360deg; }
+}
+
+/* Voice search: a microphone inside the search box. */
+.searchblox-search.sb-has-voice .sb-form .sb-input {
+  padding-right: 48px;
+}
+
+.searchblox-search .sb-voice {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--_sb-accent-text);
+  translate: 0 -50%;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-voice:hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-voice:disabled {
+  opacity: 0.5;
+  cursor: progress;
+}
+
+.searchblox-search .sb-voice.is-listening {
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+  animation: sb-listen 1.4s ease-in-out infinite;
+}
+
+@keyframes sb-listen {
+  50% { box-shadow: 0 0 0 6px var(--_sb-accent-subtle); }
+}
+
+/* AI Mode: a button beside the search button, and the conversation that
+   replaces the results while it's on. */
+.searchblox-search .sb-aimode-toggle {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: 6px;
+  align-items: center;
+  height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-surface);
+  color: var(--_sb-accent-text);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-aimode-toggle:hover {
+  background: var(--_sb-accent-subtle);
+}
+
+.searchblox-search .sb-aimode-toggle[aria-pressed='true'] {
+  border-color: var(--_sb-accent);
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+}
+
+@container (width < 560px) {
+  .searchblox-search .sb-aimode-toggle span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .searchblox-search .sb-aimode-toggle {
+    padding: 0 11px;
+  }
+}
+
+/* Narrow results widgets with extra buttons: the search box gets its own row.
+   A search box only instance (header) keeps everything on one line. */
+@container (width < 480px) {
+  .searchblox-search:not(.sb-box-only) .sb-form:has(.sb-aimode-toggle, .sb-settings) {
+    flex-wrap: wrap;
+  }
+
+  .searchblox-search:not(.sb-box-only) .sb-form:has(.sb-aimode-toggle, .sb-settings) .sb-input-wrap {
+    flex-basis: 100%;
+  }
+
+  .searchblox-search:not(.sb-box-only) .sb-form:has(.sb-aimode-toggle, .sb-settings) .sb-submit {
+    flex: 1;
+  }
+}
+
+.searchblox-search.sb-aimode-on > :not(.sb-form, .sb-aimode) {
+  display: none;
+}
+
+.searchblox-search .sb-aimode {
+  padding: 18px 24px 20px;
+  border: 1px solid var(--_sb-divider);
+  border-radius: calc(var(--sb-radius, 8px) * 3);
+  line-height: 1.6;
+}
+
+.searchblox-search .sb-aimode-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.searchblox-search .sb-aimode-empty {
+  padding: 32px 0 24px;
+  text-align: center;
+}
+
+.searchblox-search .sb-aimode-empty[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-aimode-empty svg {
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-aimode-empty p {
+  margin: 0 0 6px;
+  color: var(--_sb-muted);
+}
+
+.searchblox-search .sb-aimode-empty .sb-aimode-empty-title {
+  color: inherit;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-aimode-thread {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-aimode-turn {
+  padding: 20px 0;
+  scroll-margin-top: 80px;
+}
+
+.searchblox-search .sb-aimode-turn + .sb-aimode-turn {
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-aimode-question {
+  margin: 0 0 12px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.searchblox-search .sb-aimode-answer {
+  font-size: 0.95rem;
+}
+
+.searchblox-search .sb-aimode-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+}
+
+.searchblox-search .sb-aimode-meta .sb-ai-time {
+  margin: 0;
+}
+
+.searchblox-search .sb-aimode-refs {
+  margin-top: 14px;
+  border: 1px solid var(--_sb-divider);
+  border-radius: var(--sb-radius, 8px);
+  font-size: 0.875rem;
+}
+
+.searchblox-search .sb-aimode-refs > summary {
+  padding: 8px 12px;
+  color: var(--_sb-accent-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-aimode-refs ul {
+  margin: 0;
+  padding: 0 12px 4px;
+  list-style: none;
+}
+
+.searchblox-search .sb-aimode-refs li {
+  padding: 8px 0;
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-aimode-refs a {
+  color: var(--_sb-accent-text);
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.searchblox-search .sb-aimode-refs p {
+  display: -webkit-box;
+  margin: 2px 0 0;
+  overflow: hidden;
+  color: var(--_sb-muted);
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.searchblox-search .sb-aimode-followups {
+  margin-top: 16px;
+}
+
+.searchblox-search .sb-aimode-followups h3 {
+  margin: 0 0 8px;
+  color: var(--_sb-accent-text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-aimode-form {
+  display: flex;
+  gap: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-aimode-exit {
+  flex-shrink: 0;
+  height: 44px;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-aimode-exit:hover {
+  background: var(--_sb-hover);
+}
+
+.searchblox-search .sb-aimode-form .sb-submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Chat: SmartFAQ questions suggested while typing (`chatSuggestions`). */
+.searchblox-search .sb-chat-prompts {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 10px 12px 0;
+  border-top: 1px solid var(--_sb-divider);
+  list-style: none;
+}
+
+.searchblox-search .sb-chat-prompts button {
+  display: block;
+  width: 100%;
+  border-radius: var(--sb-radius, 8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .searchblox-search .sb-spinner,
+  .searchblox-search .sb-voice.is-listening {
+    animation: none;
+  }
+}
+
+/* More like this: a small button after the result title. */
+.searchblox-search .sb-mlt {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin: 0 0 0 4px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--_sb-muted);
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-mlt:hover {
+  background: var(--_sb-hover);
+  color: var(--_sb-accent-text);
+}
+
+/* Chat reference links (`chatReferences`): top search results under an answer. */
+.searchblox-search .sb-chat-refs {
+  min-width: 0;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--_sb-divider);
+}
+
+.searchblox-search .sb-chat-refs-title {
+  margin: 0 0 4px;
+  color: var(--_sb-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.searchblox-search .sb-chat-refs ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.searchblox-search .sb-chat-refs a {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 4px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.searchblox-search .sb-chat-refs a > span {
+  min-width: 0;
+}
+
+.searchblox-search .sb-chat-refs svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--_sb-accent-text);
+}
+
+.searchblox-search .sb-chat-ref-title {
+  display: block;
+  color: var(--_sb-accent-text);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.searchblox-search .sb-chat-refs a:hover .sb-chat-ref-title {
+  text-decoration: underline;
+}
+
+.searchblox-search .sb-chat-ref-url {
+  display: block;
+  overflow: hidden;
+  color: var(--_sb-muted);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Date facet: a custom range picked with the browser's own date fields. */
+.searchblox-search .sb-date-range {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 0 26px;
+}
+
+.searchblox-search .sb-date-range[hidden] {
+  display: none;
+}
+
+.searchblox-search .sb-date-range label {
+  display: grid;
+  gap: 4px;
+  color: var(--_sb-muted);
+  font-size: 0.8rem;
+}
+
+.searchblox-search .sb-date-input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 34px;
+  padding: 0 8px;
+  border: 1px solid var(--_sb-control-border);
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-surface);
+  color: inherit;
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.searchblox-search .sb-date-input:focus-visible {
+  outline: 2px solid var(--_sb-accent-text);
+  outline-offset: 2px;
+}
+
+.searchblox-search .sb-date-apply {
+  justify-self: start;
+  height: 32px;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--sb-radius, 8px);
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.searchblox-search .sb-date-apply:hover:not(:disabled) {
+  background: var(--_sb-accent-hover);
+}
+
+.searchblox-search .sb-date-apply:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Narrow layouts: filter picks wait for Apply. */
+.searchblox-search .sb-filters-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--_sb-divider);
+  background: var(--_sb-surface);
+}
+
+/* SearchBlox can say not to highlight matches. */
+.searchblox-search.sb-no-highlight .sb-results mark {
+  background: none;
+  color: inherit;
+}
+
+/* "New recommendations", shown for 5 seconds after a new set arrives. */
+.searchblox-search .sb-recs-notice {
+  margin-left: 8px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--_sb-accent);
+  color: var(--_sb-accent-contrast);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: none;
+}
